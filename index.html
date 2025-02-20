@@ -15,11 +15,12 @@
     }
     .container {
       max-width: 900px;
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.98);
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
       margin: auto;
+      color: #002855;
     }
     input, button {
       width: 100%;
@@ -37,6 +38,8 @@
       padding: 10px;
       border: 1px solid #ddd;
       text-align: center;
+      color: black;
+      background: white;
     }
     th {
       background: #0056a3;
@@ -45,6 +48,24 @@
     .actions button {
       width: auto;
       margin: 5px;
+    }
+    .dashboard-summary {
+      margin-top: 20px;
+      font-size: 1.2em;
+      background: #eef4fc;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: left;
+    }
+    .dashboard-summary p {
+      margin: 5px 0;
+      font-size: 1.1em;
+      font-weight: bold;
+      color: black;
+    }
+    .dashboard-summary span {
+      color: black;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -61,6 +82,11 @@
       <input type="number" id="liter_tokopedia" placeholder="Liter Tokopedia">
       <button type="submit">Simpan Data</button>
     </form>
+    <div class="dashboard-summary">
+      <p>Jumlah Satuan: <span id="totalSatuan">0</span></p>
+      <p>Jumlah Liter: <span id="totalLiter">0</span></p>
+      <p>Jumlah Uang: Rp. <span id="totalUang">0</span></p>
+    </div>
     <table>
       <thead>
         <tr>
@@ -86,6 +112,14 @@
   </div>
   <script>
     let data = JSON.parse(localStorage.getItem('data')) || [];
+    function updateDashboard() {
+      const satuan = data.reduce((sum, item) => sum + (item.tiktok + item.shopee + item.tokopedia), 0);
+      const liter = data.reduce((sum, item) => sum + (item.liter_tiktok + item.liter_shopee + item.liter_tokopedia), 0);
+      const uang = satuan * 10000 + liter * 80000;
+      document.getElementById('totalSatuan').textContent = satuan;
+      document.getElementById('totalLiter').textContent = liter;
+      document.getElementById('totalUang').textContent = uang.toLocaleString();
+    }
     function renderData() {
       document.getElementById('dataList').innerHTML = data.map((item, index) => `
         <tr>
@@ -96,30 +130,41 @@
           <td>${item.liter_tiktok}</td>
           <td>${item.liter_shopee}</td>
           <td>${item.liter_tokopedia}</td>
-          <td><button onclick="deleteData(${index})">Hapus</button></td>
+          <td>
+            <button onclick="editData(${index})">Edit</button>
+            <button onclick="deleteData(${index})">Hapus</button>
+          </td>
         </tr>`).join('');
+      updateDashboard();
     }
-    function deleteData(index) {
+    function editData(index) {
+      const item = data[index];
+      document.getElementById('date').value = item.date;
+      document.getElementById('tiktok').value = item.tiktok;
+      document.getElementById('shopee').value = item.shopee;
+      document.getElementById('tokopedia').value = item.tokopedia;
+      document.getElementById('liter_tiktok').value = item.liter_tiktok;
+      document.getElementById('liter_shopee').value = item.liter_shopee;
+      document.getElementById('liter_tokopedia').value = item.liter_tokopedia;
       data.splice(index, 1);
-      localStorage.setItem('data', JSON.stringify(data));
       renderData();
     }
-    function downloadExcel() {
-      let ws = XLSX.utils.json_to_sheet(data);
-      let wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Data");
-      XLSX.writeFile(wb, "data.xlsx");
-    }
-    function shareData() {
-      if (navigator.share) {
-        navigator.share({
-          title: 'Data Input',
-          text: JSON.stringify(data, null, 2),
-        }).catch(console.error);
-      } else {
-        alert('Fitur berbagi tidak tersedia di perangkat ini.');
-      }
-    }
+    document.getElementById('dataForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const newData = {
+        date: document.getElementById('date').value,
+        tiktok: parseInt(document.getElementById('tiktok').value) || 0,
+        shopee: parseInt(document.getElementById('shopee').value) || 0,
+        tokopedia: parseInt(document.getElementById('tokopedia').value) || 0,
+        liter_tiktok: parseInt(document.getElementById('liter_tiktok').value) || 0,
+        liter_shopee: parseInt(document.getElementById('liter_shopee').value) || 0,
+        liter_tokopedia: parseInt(document.getElementById('liter_tokopedia').value) || 0,
+      };
+      data.push(newData);
+      localStorage.setItem('data', JSON.stringify(data));
+      document.getElementById('dataForm').reset();
+      renderData();
+    });
     renderData();
   </script>
 </body>
